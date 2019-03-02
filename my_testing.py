@@ -5,9 +5,57 @@ from tensorflow.keras.callbacks import TensorBoard
 import numpy as np 
 from tensorflow import set_random_seed
 import os
+import sys
 
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+
+class Window(QMainWindow):
+
+	def __init__(self, latent_space, decoder, parent = None):
+		QMainWindow.__init__(self)
+		self.wid = QWidget()
+		self.setCentralWidget(self.wid)
+		self.decoder = decoder
+
+		self.figure = Figure()
+		self.canvas = FigureCanvas(self.figure)
+		self.ax = self.figure.add_subplot(111)
+
+		self.layout = QHBoxLayout()
+		self.slider_menu = QVBoxLayout()
+		self.sliders = []
+		self.representation = np.zeros(latent_space)
+		for i in range(latent_space):
+			s = QSlider(Qt.Horizontal)
+			s.setMaximum(100)
+			s.setMinimum(-100)
+			s.setTickInterval(1)
+			s.valueChanged.connect(self.update_representation)
+			self.sliders.append(s)
+		for s in self.sliders:
+			self.slider_menu.addWidget(s)
+		self.layout.addWidget(self.canvas)
+		self.layout.addLayout(self.slider_menu)
+
+		self.wid.setLayout(self.layout)
+		self.show()
+
+	def update_representation(self):
+		for i, s in enumerate(self.sliders):
+			self.representation[i] = s.value()/100
+
+		y = self.decoder.predict(np.expand_dims(self.representation, axis = 0))
+
+		self.ax.clear()
+		self.ax.imshow(y.reshape(28,28),  cmap='Greys')
+
+		self.canvas.draw()
 
 fashion_mnist = keras.datasets.fashion_mnist
 
@@ -23,13 +71,9 @@ all_images /= 255
 encoder = load_model('./weights/encoder_weights.h5',compile = True)
 decoder = load_model('./weights/decoder_weights.h5',compile = True)
 
+app = QApplication(sys.argv)
 
-im = 33
-print(all_images[im].shape)
-out1 = encoder.predict(all_images[im:im+1])
-out2 = decoder.predict(out1)
+main = Window(20, decoder)
+main.show()
+sys.exit(app.exec_())
 
-plt.imshow(all_images[im].reshape(28,28),  cmap='Greys')
-plt.figure()
-plt.imshow(out2[0].reshape(28,28),  cmap='Greys')
-plt.show()

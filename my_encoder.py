@@ -19,7 +19,7 @@ all_images /= 255
 all_images = all_images[:10000]
 
 
-latent_space = 100
+latent_space = 20
 
 encoder_inputs = Input(shape =(all_images[0].shape))
 encoder_encoded = Dense(latent_space, activation='relu')(encoder_inputs)
