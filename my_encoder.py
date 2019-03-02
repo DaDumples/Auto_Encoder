@@ -16,7 +16,6 @@ all_images = np.zeros((train_images.shape[0],train_images.shape[1]*train_images.
 for idx, image in enumerate(train_images):
 	all_images[idx] = image.flatten()
 all_images /= 255
-all_images = all_images[:10000]
 
 
 latent_space = 20
@@ -46,4 +45,18 @@ if not os.path.exists(r'./weights'):
 encoder.save(r'./weights/encoder_weights.h5')
 decoder.save(r'./weights/decoder_weights.h5')
 autoencoder.save(r'./weights/ae_weights.h5')
+
+
+representations = encoder.predict(all_images)
+
+means = np.mean(representations, axis = 0)
+print(means.shape)
+print(representations.shape)
+covariance = np.cov((representations - means).T)
+evalues, evects = np.linalg.eigh(covariance)
+np.save(r'./weights/evalues',evalues)
+np.save(r'./weights/evects',evects)
+np.save(r'./weights/means',means)
+
+
 

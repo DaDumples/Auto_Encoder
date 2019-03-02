@@ -17,11 +17,16 @@ from PyQt5.QtWidgets import *
 
 class Window(QMainWindow):
 
-	def __init__(self, latent_space, decoder, parent = None):
+	def __init__(self, latent_space, decoder, evalues, evects, means, parent = None):
 		QMainWindow.__init__(self)
 		self.wid = QWidget()
 		self.setCentralWidget(self.wid)
 		self.decoder = decoder
+		self.sorted_indx = np.argsort(-evalues)
+		self.evalues = evalues[self.sorted_indx]
+		self.evects = evects[:,self.sorted_indx]
+		self.means = means
+		
 
 		self.figure = Figure()
 		self.canvas = FigureCanvas(self.figure)
@@ -50,30 +55,34 @@ class Window(QMainWindow):
 		for i, s in enumerate(self.sliders):
 			self.representation[i] = s.value()/100
 
-		y = self.decoder.predict(np.expand_dims(self.representation, axis = 0))
+		x = (self.evects@(self.representation*self.evalues).T).T + self.means
+		y = self.decoder.predict(np.expand_dims(x, axis = 0))
 
 		self.ax.clear()
 		self.ax.imshow(y.reshape(28,28),  cmap='Greys')
 
 		self.canvas.draw()
 
-fashion_mnist = keras.datasets.fashion_mnist
+# fashion_mnist = keras.datasets.fashion_mnist
 
-(train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
+# (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
 
-print(train_images.shape)
-all_images = np.zeros((train_images.shape[0],train_images.shape[1]*train_images.shape[2]))
-for idx, image in enumerate(train_images):
-	all_images[idx] = image.flatten()
-all_images /= 255
+# print(train_images.shape)
+# all_images = np.zeros((train_images.shape[0],train_images.shape[1]*train_images.shape[2]))
+# for idx, image in enumerate(train_images):
+# 	all_images[idx] = image.flatten()
+# all_images /= 255
 
 
 encoder = load_model('./weights/encoder_weights.h5',compile = True)
 decoder = load_model('./weights/decoder_weights.h5',compile = True)
+evalues = np.sqrt(np.load(r'./weights/evalues.npy'))
+evects = np.load(r'./weights/evects.npy')
+means = np.load(r'./weights/means.npy')
 
 app = QApplication(sys.argv)
 
-main = Window(20, decoder)
+main = Window(20, decoder, evalues, evects, means)
 main.show()
 sys.exit(app.exec_())
 
